@@ -32258,7 +32258,7 @@ const PB_FIXED_DATA = [
     return (cartArr || []).map(function (it) {
       const m = PBH_MENU.find(function (x) { return x.id === it.menuId; });
       const price = (it.priceOverride != null) ? it.priceOverride : pbhMenuItemPrice(it.menuId, group);
-      return { name: m ? m.name : '', qty: it.qty, price: price };
+      return { name: m ? m.name : '', qty: it.qty, price: price, note: it.note || '' };
     });
   }
 
@@ -32404,8 +32404,10 @@ const PB_FIXED_DATA = [
     pbhCloseReceiptPreview();
   }
 
-  function pbhReceiptPreviewDoPrint() {
-    const opts = pbhReceiptPreviewOpts || {};
+  // In thẳng qua RawBT (không hỏi lại), dùng chung cho Tạm tính và cho nút
+  // "In phiếu" trong modal xem trước sau khi thanh toán.
+  function pbhDirectPrintReceipt(opts) {
+    opts = opts || {};
     const text = rawbtBuildReceipt({
       title: opts.isTamTinh ? 'PHIẾU TẠM TÍNH' : 'HÓA ĐƠN BÁN HÀNG',
       orderCode: opts.orderCode, tableLabel: opts.tableLabel, cashier: opts.cashier,
@@ -32417,9 +32419,12 @@ const PB_FIXED_DATA = [
     if (ok) showToast('Đang gửi lệnh in sang máy in.');
     else {
       // Không phải Android/không có RawBT: mở hộp thoại in của trình duyệt để dự phòng.
-      const frame = document.getElementById('pbhReceiptPreviewFrame');
-      try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {}
+      pbhOpenPrintReceiptWindow(opts);
     }
+  }
+
+  function pbhReceiptPreviewDoPrint() {
+    pbhDirectPrintReceipt(pbhReceiptPreviewOpts || {});
     pbhCloseReceiptPreview();
   }
 
@@ -32735,10 +32740,11 @@ const PB_FIXED_DATA = [
      LỊCH SỬ BÁO BẾP
      ========================================================================= */
   let pbhKitchenLog = [];
-  function pbhLogKitchen(storeName, lines) {
+  function pbhLogKitchen(t, lines) {
     if (!lines || !lines.length) return;
-    pbhKitchenLog.unshift({ time: new Date(), store: storeName || 'Hola Coffee', lines: lines });
-    pbhTryPrintKitchenTicket(storeName, lines);
+    const storeName = t && t.name ? t.name : 'Hola Coffee';
+    pbhKitchenLog.unshift({ time: new Date(), store: storeName, lines: lines });
+    pbhTryPrintKitchenTicket(t, lines);
   }
 
   /* =========================================================================
@@ -32746,26 +32752,40 @@ const PB_FIXED_DATA = [
      ========================================================================= */
   let pbhKitchenPrintErrors = [];
 
-  function pbhKitchenTicketText(storeName, lines) {
+  function pbhKitchenTicketText(t, lines) {
     const L = [];
-    L.push(rawbtCenter('PHIẾU CHẾ BIẾN'));
-    L.push(rawbtCenter(storeName || 'Hola Coffee'));
+    const tableLabel = t && t.name ? (t.name + (t.group ? ' - ' + pbhGroupLabel(t.group) : '')) : '';
+    const server = (currentAccount && currentAccount.name ? currentAccount.name : 'Thu ngân').toUpperCase();
+    const orderCode = t && t.orderCode ? t.orderCode : '';
+    L.push(rawbtCenter('CHẾ BIẾN'));
+    L.push(rawbtDivider('='));
+    if (tableLabel) L.push('Bàn: ' + tableLabel);
+    L.push('Phục vụ: ' + server);
+    L.push((orderCode ? orderCode + ' - ' : '') + pbhReceiptDateStr());
+    L.push(rawbtDivider('-'));
+    L.push(rawbtPadLine('Món', 'SL'));
     L.push(rawbtDivider('-'));
     (lines || []).forEach(function (l) {
-      L.push((l.sign === '-' ? '- ' : '+ ') + l.qty + ' ' + l.name);
+      const sign = l.sign === '-' ? '- ' : '';
+      rawbtWrap(sign + l.name, RAWBT_RECEIPT_WIDTH - 4).forEach(function (line, i) {
+        L.push(i === 0 ? line : '  ' + line);
+      });
+      L.push(rawbtPadLine('', String(l.qty)));
     });
+    L.push(rawbtDivider('='));
     L.push('');
     return L.join('\n');
   }
 
-  function pbhTryPrintKitchenTicket(storeName, lines) {
-    const text = pbhKitchenTicketText(storeName, lines);
+  function pbhTryPrintKitchenTicket(t, lines) {
+    const text = pbhKitchenTicketText(t, lines);
+    const storeName = t && t.name ? t.name : 'Hola Coffee';
     const ok = rawbtPrint(text, 1);
     if (!ok) {
       pbhKitchenPrintErrors.unshift({
         id: 'kpe' + Date.now() + Math.random().toString(36).slice(2, 6),
         time: new Date(),
-        store: storeName || 'Hola Coffee',
+        store: storeName,
         lines: lines,
         text: text
       });
@@ -32962,7 +32982,7 @@ const PB_FIXED_DATA = [
         if (m) lines.push({ sign: '-', qty: n, name: m.name });
       }
     });
-    if (lines.length) { pbhLogKitchen(t.name, lines); showToast('Đã gửi thông báo trả đồ đến bar/bếp.'); }
+    if (lines.length) { pbhLogKitchen(t, lines); showToast('Đã gửi thông báo trả đồ đến bar/bếp.'); }
     else showToast('Chưa có số lượng trả để thông báo.');
     pbhCloseCheckModal();
   }
@@ -33755,7 +33775,7 @@ const PB_FIXED_DATA = [
     const item = t.cart.find(function (x) { return x.lid === lid; });
     if (item) {
       const m = PBH_MENU.find(function (x) { return x.id === item.menuId; });
-      if (item.sent && m) pbhLogKitchen(t.name, [{ sign: '-', qty: item.qty, name: m.name }]);
+      if (item.sent && m) pbhLogKitchen(t, [{ sign: '-', qty: item.qty, name: m.name }]);
       const unitPrice = (item.priceOverride != null) ? item.priceOverride : pbhMenuItemPrice(item.menuId, t.group);
       pbhRegisterCancelledItem(item.menuId, item.qty, !!item.sent, unitPrice);
     }
@@ -33784,7 +33804,7 @@ const PB_FIXED_DATA = [
     if (delta < 0) {
       const m = PBH_MENU.find(function (x) { return x.id === item.menuId; });
       const cut = Math.min(item.qty, -delta);
-      if (item.sent && m && cut > 0) pbhLogKitchen(t.name, [{ sign: '-', qty: cut, name: m.name }]);
+      if (item.sent && m && cut > 0) pbhLogKitchen(t, [{ sign: '-', qty: cut, name: m.name }]);
       if (cut > 0) {
         const unitPrice = (item.priceOverride != null) ? item.priceOverride : pbhMenuItemPrice(item.menuId, t.group);
         pbhRegisterCancelledItem(item.menuId, cut, !!item.sent, unitPrice);
@@ -33824,7 +33844,7 @@ const PB_FIXED_DATA = [
         const m = PBH_MENU.find(function (x) { return x.id === it.menuId; });
         return { sign: '+', qty: it.qty, name: m ? m.name : '' };
       });
-      if (newLines.length) pbhLogKitchen(t.name, newLines);
+      if (newLines.length) pbhLogKitchen(t, newLines);
       t.cart.forEach(function (it) { it.sent = true; });
       pbhRenderBoard();
     }
@@ -34309,12 +34329,11 @@ const PB_FIXED_DATA = [
     pbhRenderBoard();
     const subtotal = pmtCurrentSubtotal();
     const total = pmtNeedPayAmount();
-    pbhOpenPrintReceiptWindow({
+    pbhDirectPrintReceipt({
       isTamTinh: true, orderCode: t.orderCode, tableLabel: t.name + ' / ' + pbhGroupLabel(t.group),
       cashier: currentAccount ? currentAccount.name : 'Admin',
       items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: total, paid: total, change: 0
     });
-    showToast('Đang mở hộp thoại in tạm tính.');
   }
 
   function pmtPrintBill() {
