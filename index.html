@@ -32258,7 +32258,7 @@ const PB_FIXED_DATA = [
     L.push('');
     L.push(rawbtCenter('Cảm ơn quý khách!'));
     L.push('');
-    return rawbtRemoveDiacritics(L.join('\n'));
+    return L.join('\n'); // Đang IN CÓ DẤU — nếu máy in ra lỗi/mất chữ, đổi lại thành: return rawbtRemoveDiacritics(L.join('\n'));
   }
 
   // Gửi 1 bản in sang RawBT qua Android Intent — đúng cú pháp RawBT công bố:
@@ -32815,7 +32815,7 @@ const PB_FIXED_DATA = [
     });
     L.push(rawbtDivider('='));
     L.push('');
-    return rawbtRemoveDiacritics(L.join('\n'));
+    return L.join('\n'); // Đang IN CÓ DẤU — nếu máy in ra lỗi/mất chữ, đổi lại thành: return rawbtRemoveDiacritics(L.join('\n'));
   }
 
   function pbhTryPrintKitchenTicket(t, lines) {
