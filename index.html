@@ -32788,7 +32788,11 @@ const PB_FIXED_DATA = [
     const orderCode = t && t.orderCode ? t.orderCode : '';
     L.push(' '.repeat(Math.max(0, Math.floor((RAWBT_RECEIPT_WIDTH - 'CHẾ BIẾN'.length) / 2))) + rawbtBoldBig('CHẾ BIẾN'));
     L.push(rawbtDivider('='));
-    if (tableLabel) L.push(rawbtMed('Bàn: ' + tableLabel));
+    if (tableLabel) {
+      rawbtWrap('Bàn: ' + tableLabel, Math.floor((RAWBT_RECEIPT_WIDTH - 2) / 2)).forEach(function (line) {
+        L.push(rawbtBoldBig(line));
+      });
+    }
     L.push('Phục vụ: ' + server);
     L.push(rawbtBold((orderCode ? orderCode + ' - ' : '') + pbhReceiptDateStr()));
     L.push(rawbtDivider('-'));
