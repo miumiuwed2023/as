@@ -32155,6 +32155,26 @@ const PB_FIXED_DATA = [
      Android (PC, iPhone) chức năng in thật sẽ không hoạt động được. */
   const RAWBT_RECEIPT_WIDTH = 32; // số ký tự/dòng phù hợp giấy nhiệt 58mm cỡ chữ thường
 
+  // Mã lệnh ESC/POS để làm đậm và phóng to chữ trên máy in nhiệt (dùng cho
+  // phiếu báo bếp: tiêu đề "CHẾ BIẾN" và tên món cần nổi bật hơn phần còn lại).
+  const ESC_BOLD_ON = '\x1B\x45\x01';
+  const ESC_BOLD_OFF = '\x1B\x45\x00';
+  const ESC_BIG_ON = '\x1D\x21\x11';  // chữ gấp đôi cả bề rộng lẫn chiều cao
+  const ESC_BIG_OFF = '\x1D\x21\x00'; // về lại cỡ chữ thường
+  const ESC_MED_ON = '\x1D\x21\x01';  // chữ cao gấp đôi, bề rộng bình thường (to vừa, nhỏ hơn "to gấp đôi")
+
+  function rawbtBoldBig(text) {
+    return ESC_BOLD_ON + ESC_BIG_ON + text + ESC_BIG_OFF + ESC_BOLD_OFF;
+  }
+
+  function rawbtBold(text) {
+    return ESC_BOLD_ON + text + ESC_BOLD_OFF;
+  }
+
+  function rawbtMed(text) {
+    return ESC_MED_ON + text + ESC_BIG_OFF;
+  }
+
   function rawbtIsAndroid() {
     return /Android/i.test(navigator.userAgent || '');
   }
@@ -32766,20 +32786,23 @@ const PB_FIXED_DATA = [
     const tableLabel = t && t.name ? (t.name + (t.group ? ' - ' + pbhGroupLabel(t.group) : '')) : '';
     const server = (currentAccount && currentAccount.name ? currentAccount.name : 'Thu ngân').toUpperCase();
     const orderCode = t && t.orderCode ? t.orderCode : '';
-    L.push(rawbtCenter('CHẾ BIẾN'));
+    L.push(' '.repeat(Math.max(0, Math.floor((RAWBT_RECEIPT_WIDTH - 'CHẾ BIẾN'.length) / 2))) + rawbtBoldBig('CHẾ BIẾN'));
     L.push(rawbtDivider('='));
-    if (tableLabel) L.push('Bàn: ' + tableLabel);
+    if (tableLabel) L.push(rawbtMed('Bàn: ' + tableLabel));
     L.push('Phục vụ: ' + server);
-    L.push((orderCode ? orderCode + ' - ' : '') + pbhReceiptDateStr());
+    L.push(rawbtBold((orderCode ? orderCode + ' - ' : '') + pbhReceiptDateStr()));
     L.push(rawbtDivider('-'));
     L.push(rawbtPadLine('Món', 'SL'));
     L.push(rawbtDivider('-'));
+    // Tên món in đậm + chữ to gấp đôi (ngang cỡ chữ "CHẾ BIẾN") để bar/bếp
+    // dễ nhìn thấy ngay, nên bọc dòng ở bề rộng hẹp hơn (chữ to chiếm 2 lần
+    // chỗ so với chữ thường) để không bị tràn/cắt trên giấy in nhiệt 58mm.
     (lines || []).forEach(function (l) {
       const sign = l.sign === '-' ? '- ' : '';
-      rawbtWrap(sign + l.name, RAWBT_RECEIPT_WIDTH - 4).forEach(function (line, i) {
-        L.push(i === 0 ? line : '  ' + line);
+      rawbtWrap(sign + l.name, Math.floor((RAWBT_RECEIPT_WIDTH - 4) / 2)).forEach(function (line) {
+        L.push(rawbtBoldBig(line));
       });
-      L.push(rawbtPadLine('', String(l.qty)));
+      L.push(rawbtBoldBig('SL: ' + l.qty));
     });
     L.push(rawbtDivider('='));
     L.push('');
