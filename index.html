@@ -33935,14 +33935,7 @@ const PB_FIXED_DATA = [
       cashier: currentAccount ? currentAccount.name : 'Admin',
       items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: subtotal
     });
-    const printedByRawbt = rawbtPrint(text, pbhPrintSettings.tamTinhCopies);
-    if (!printedByRawbt) {
-      pbhOpenPrintReceiptWindow({
-        isTamTinh: true, orderCode: t.orderCode, tableLabel: t.name + ' / ' + pbhGroupLabel(t.group),
-        cashier: currentAccount ? currentAccount.name : 'Admin',
-        items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: subtotal
-      });
-    }
+    rawbtPrint(text, pbhPrintSettings.tamTinhCopies);
   }
 
   function pbhCheckout() {
@@ -34246,14 +34239,7 @@ const PB_FIXED_DATA = [
       cashier: currentAccount ? currentAccount.name : 'Admin',
       items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: pmtNeedPayAmount()
     });
-    const printedByRawbt = rawbtPrint(text, pbhPrintSettings.tamTinhCopies);
-    if (!printedByRawbt) {
-      pbhOpenPrintReceiptWindow({
-        isTamTinh: true, orderCode: t.orderCode, tableLabel: t.name + ' / ' + pbhGroupLabel(t.group),
-        cashier: currentAccount ? currentAccount.name : 'Admin',
-        items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: pmtNeedPayAmount()
-      });
-    }
+    rawbtPrint(text, pbhPrintSettings.tamTinhCopies);
   }
 
   function pmtConfirmPay() {
@@ -34301,7 +34287,6 @@ const PB_FIXED_DATA = [
     const receiptItems = rawbtItemsFromCart(t.cart, t.group);
     const receiptTableLabel = t.name + ' / ' + pbhGroupLabel(t.group);
     const receiptCashier = currentAccount ? currentAccount.name : 'Admin';
-    let printedByRawbt = false;
     if (pbhPrintSettings.autoPrint) {
       const text = rawbtBuildReceipt({
         orderCode: t.orderCode, tableLabel: receiptTableLabel,
@@ -34309,18 +34294,7 @@ const PB_FIXED_DATA = [
         items: receiptItems, subtotal: receiptSubtotal, discount: receiptDiscount,
         otherFee: pmtOtherFeeVal, total: receiptTotal
       });
-      printedByRawbt = rawbtPrint(text, pbhPrintSettings.invoiceCopies);
-    }
-    // Mở màn hình in hoá đơn qua trình duyệt (giống KiotViet) sau khi thanh toán
-    // — chỉ dùng khi không in được qua RawBT (PC/máy không cài RawBT), tránh
-    // xung đột với RawBT vốn đã in thành công.
-    if (!printedByRawbt) {
-      pbhOpenPrintReceiptWindow({
-        orderCode: t.orderCode, tableLabel: receiptTableLabel,
-        cashier: receiptCashier, items: receiptItems, subtotal: receiptSubtotal,
-        discount: receiptDiscount, otherFee: pmtOtherFeeVal, total: receiptTotal,
-        paid: receiptPaid, change: receiptChange
-      });
+      rawbtPrint(text, pbhPrintSettings.invoiceCopies);
     }
     const paidId = t.id;
     pmtClose();
