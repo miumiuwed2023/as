@@ -32157,22 +32157,22 @@ const PB_FIXED_DATA = [
 
   // Mã lệnh ESC/POS để làm đậm và phóng to chữ trên máy in nhiệt (dùng cho
   // phiếu báo bếp: tiêu đề "CHẾ BIẾN" và tên món cần nổi bật hơn phần còn lại).
-  const ESC_BOLD_ON = '\x1B\x45\x01';
-  const ESC_BOLD_OFF = '\x1B\x45\x00';
-  const ESC_BIG_ON = '\x1D\x21\x11';  // chữ gấp đôi cả bề rộng lẫn chiều cao
-  const ESC_BIG_OFF = '\x1D\x21\x00'; // về lại cỡ chữ thường
-  const ESC_MED_ON = '\x1D\x21\x01';  // chữ cao gấp đôi, bề rộng bình thường (to vừa, nhỏ hơn "to gấp đôi")
+  // Dùng lệnh "ESC !" (Select Print Mode, 1 lệnh 3-byte set cả đậm + to
+  // cùng lúc) thay vì 2 lệnh "ESC E" + "GS !" riêng như trước — lệnh này
+  // được hỗ trợ rộng rãi hơn trên các dòng máy in nhiệt giá rẻ/hàng nhái.
+  const ESC_MODE_BOLD_BIG = '\x1B\x21\x38'; // bold + double height + double width
+  const ESC_MODE_NORMAL = '\x1B\x21\x00';   // về lại chữ thường
 
   function rawbtBoldBig(text) {
-    return ESC_BOLD_ON + ESC_BIG_ON + text + ESC_BIG_OFF + ESC_BOLD_OFF;
+    return ESC_MODE_BOLD_BIG + text + ESC_MODE_NORMAL;
   }
 
   function rawbtBold(text) {
-    return ESC_BOLD_ON + text + ESC_BOLD_OFF;
+    return ESC_MODE_BOLD_BIG + text + ESC_MODE_NORMAL;
   }
 
   function rawbtMed(text) {
-    return ESC_MED_ON + text + ESC_BIG_OFF;
+    return ESC_MODE_BOLD_BIG + text + ESC_MODE_NORMAL;
   }
 
   function rawbtIsAndroid() {
@@ -32796,7 +32796,7 @@ const PB_FIXED_DATA = [
     const tableLabel = t && t.name ? (t.name + (t.group ? ' - ' + pbhGroupLabel(t.group) : '')) : '';
     const server = (currentAccount && currentAccount.name ? currentAccount.name : 'Thu ngân').toUpperCase();
     const orderCode = t && t.orderCode ? t.orderCode : '';
-    L.push(rawbtCenter('CHẾ BIẾN'));
+    L.push(rawbtCenter(rawbtBoldBig('CHẾ BIẾN')));
     L.push(rawbtDivider('='));
     if (tableLabel) L.push('Bàn: ' + tableLabel);
     L.push('Phục vụ: ' + server);
@@ -32804,15 +32804,15 @@ const PB_FIXED_DATA = [
     L.push(rawbtDivider('-'));
     L.push(rawbtPadLine('Món', 'SL'));
     L.push(rawbtDivider('-'));
-    // Không chèn mã điều khiển đậm/to nữa (nhiều máy in/RawBT không hiểu,
-    // in ra ký tự rác thay vì làm đậm) — chỉ in chữ thường, viết HOA tên
-    // món để vẫn dễ nhìn mà không lo lỗi font.
+    // Đậm + to cho tên món (dùng lệnh ESC ! duy nhất) để bar/bếp dễ thấy.
+    // Nếu máy in vẫn không hỗ trợ lệnh này (in ra ký tự lạ), báo lại để
+    // đổi về chữ thường viết HOA như bản trước.
     (lines || []).forEach(function (l) {
       const sign = l.sign === '-' ? '- ' : '';
-      rawbtWrap((sign + l.name).toUpperCase(), RAWBT_RECEIPT_WIDTH).forEach(function (line) {
-        L.push(line);
+      rawbtWrap(sign + l.name, Math.floor(RAWBT_RECEIPT_WIDTH / 2)).forEach(function (line) {
+        L.push(rawbtBoldBig(line));
       });
-      L.push('SL: ' + l.qty);
+      L.push(rawbtBoldBig('SL: ' + l.qty));
       L.push(rawbtDivider('-'));
     });
     L.push(rawbtDivider('='));
