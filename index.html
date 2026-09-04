@@ -32373,7 +32373,7 @@ const PB_FIXED_DATA = [
       '<div class="strong"><span class="lbl">Tổng cộng:</span><span>' + rawbtMoney(opts.total) + '</span></div>' +
       paidRows +
       '</div>' +
-      '<div class="qr-wrap"><img src="' + qrSrc + '" alt="QR"></div>' +
+      (isTamTinh ? '<div class="qr-wrap"><img src="' + qrSrc + '" alt="QR"></div>' : '') +
       '<div class="thanks">' + pbhEscHtml(PBH_RECEIPT_STORE_NAME) + ' Xin cảm ơn quý khách!!</div>' +
       '</div>' +
       '</body></html>';
