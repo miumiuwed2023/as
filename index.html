@@ -2934,8 +2934,16 @@
   .pmt-method-radios { display: flex; align-items: center; gap: 18px; margin-bottom: 12px; flex-wrap: wrap; }
   .pmt-method-radios label { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: #292e35; cursor: pointer; }
   .pmt-method-radios input { accent-color: #0070f4; width: 16px; height: 16px; }
-  .pmt-quick-amounts { display: flex; flex-wrap: wrap; gap: 8px; }
-  .pmt-quick-amounts button { border: 1px solid #d1d5da; background: #fff; border-radius: var(--kv-radius-sm); padding: 8px 14px; font-size: 13px; font-weight: 600; color: #3e464f; cursor: pointer; }
+  .pmt-close-round { width: 30px; height: 30px; border-radius: 50%; border: none; background: #ece9fb; color: #6c5ce7; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; margin-right: 10px; flex-shrink: 0; padding: 0; }
+  .pmt-left-head .row1 { display: flex; align-items: center; }
+  .pmt-left-head h3 { flex: 1; }
+  .pmt-method-tabs { display: table; width: 100%; table-layout: fixed; border: 1px solid #e2e6eb; border-radius: 999px; overflow: hidden; margin-bottom: 12px; background: #f7f8f9; }
+  .pmt-method-tab { display: table-cell; text-align: center; vertical-align: middle; padding: 9px 6px; font-size: 13px; font-weight: 600; color: #525d6a; cursor: pointer; }
+  .pmt-method-tab input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .pmt-method-tab.active { background: #fff; color: #0070f4; border-radius: 999px; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+  .pmt-quick-amounts { font-size: 0; }
+  .pmt-quick-amounts button { display: inline-block; margin: 0 8px 8px 0; border-radius: 999px !important; }
+  .pmt-quick-amounts button { border: 1px solid #d1d5da; background: #fff; padding: 8px 16px; font-size: 13px; font-weight: 600; color: #3e464f; cursor: pointer; }
   .pmt-quick-amounts button:hover { border-color: #0070f4; color: #0070f4; }
   .pmt-quick-amounts button.active { border-color: #0070f4; background: #e6f1fe; color: #0070f4; }
   .pmt-change-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; font-size: 13.5px; color: #3e464f; flex-shrink: 0; }
@@ -33997,6 +34005,7 @@ const PB_FIXED_DATA = [
     pmtPartialQty = {};
     pmtMethod = 'cash';
     document.querySelectorAll('input[name="pmtMethod"]').forEach(function (r) { r.checked = r.value === 'cash'; });
+    document.querySelectorAll('#pmtMethodRadios .pmt-method-tab').forEach(function (lbl, i) { lbl.classList.toggle('active', i === 0); });
     document.getElementById('pmtPartialBanner').style.display = 'none';
     document.getElementById('pmtItemsHead').classList.remove('pmt-partial-active');
     document.getElementById('pmtItemsBody').classList.remove('pmt-partial-active');
@@ -34112,8 +34121,17 @@ const PB_FIXED_DATA = [
     pmtRecalcChange();
   }
 
-  function pmtSetMethod(m) {
+  function pmtSetMethod(m, el) {
     pmtMethod = m;
+    const box = document.getElementById('pmtMethodRadios');
+    if (box) {
+      const labels = box.querySelectorAll('.pmt-method-tab');
+      for (let i = 0; i < labels.length; i++) labels[i].classList.remove('active');
+    }
+    if (el) {
+      const lbl = el.closest ? el.closest('.pmt-method-tab') : el.parentNode;
+      if (lbl) lbl.classList.add('active');
+    }
   }
 
   function pmtRecalcChange() {
@@ -35498,6 +35516,9 @@ const PB_FIXED_DATA = [
         <div class="pmt-left">
           <div class="pmt-left-head">
             <div class="row1">
+              <button class="pmt-close-round" onclick="pmtClose()" title="Đóng">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
               <h3 id="pmtLeftTitle">Thanh toán</h3>
               <span class="dt" id="pmtDateTime"></span>
             </div>
@@ -35541,10 +35562,11 @@ const PB_FIXED_DATA = [
               <input type="text" inputmode="numeric" id="pmtPaidInput" class="pmt-paid-input" value="0" oninput="pmtOnPaidInput(this)">
             </div>
             <div class="pmt-method-box">
-              <div class="pmt-method-radios" id="pmtMethodRadios">
-                <label><input type="radio" name="pmtMethod" value="cash" checked onchange="pmtSetMethod('cash')"> Tiền mặt</label>
-                <label><input type="radio" name="pmtMethod" value="bank" onchange="pmtSetMethod('bank')"> Chuyển khoản</label>
-                <label><input type="radio" name="pmtMethod" value="card" onchange="pmtSetMethod('card')"> Thẻ</label>
+              <div class="pmt-method-tabs" id="pmtMethodRadios">
+                <label class="pmt-method-tab active"><input type="radio" name="pmtMethod" value="cash" checked onchange="pmtSetMethod('cash', this)"> Tiền mặt</label>
+                <label class="pmt-method-tab"><input type="radio" name="pmtMethod" value="bank" onchange="pmtSetMethod('bank', this)"> Chuyển khoản</label>
+                <label class="pmt-method-tab"><input type="radio" name="pmtMethod" value="card" onchange="pmtSetMethod('card', this)"> Thẻ</label>
+                <label class="pmt-method-tab"><input type="radio" name="pmtMethod" value="combined" onchange="pmtSetMethod('combined', this)"> Kết hợp</label>
               </div>
               <div class="pmt-quick-amounts" id="pmtQuickAmounts"></div>
             </div>
