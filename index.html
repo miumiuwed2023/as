@@ -18411,12 +18411,11 @@
         if (!grouped[p.name]) grouped[p.name] = { name: p.name, qty: 0, price: p.price };
         grouped[p.name].qty++;
       });
-      const text = rawbtBuildReceipt({
+      pbhDirectPrintReceipt({
         cashier: currentAccount ? currentAccount.name : 'Admin',
         items: Object.keys(grouped).map(function (k) { return grouped[k]; }),
         subtotal: total, total: total
       });
-      rawbtPrint(text, pbhPrintSettings.invoiceCopies);
     }
     dailyRevenue += total;
     dailyOrders += 1;
