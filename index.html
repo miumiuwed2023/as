@@ -32176,6 +32176,15 @@ const PB_FIXED_DATA = [
     return (ch || '-').repeat(RAWBT_RECEIPT_WIDTH);
   }
 
+  // Bỏ dấu tiếng Việt trước khi gửi in — nhiều máy in nhiệt giá rẻ không có
+  // đủ font/bảng mã cho ký tự có dấu, in không dấu để chắc chắn đọc được.
+  function rawbtRemoveDiacritics(str) {
+    str = str == null ? '' : String(str);
+    str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    str = str.replace(/đ/g, 'd').replace(/Đ/g, 'D');
+    return str;
+  }
+
   function rawbtMoney(n) {
     return (n || 0).toLocaleString('vi-VN');
   }
@@ -32229,7 +32238,7 @@ const PB_FIXED_DATA = [
     L.push('');
     L.push(rawbtCenter('Cảm ơn quý khách!'));
     L.push('');
-    return L.join('\n');
+    return rawbtRemoveDiacritics(L.join('\n'));
   }
 
   // Gửi 1 bản in sang RawBT qua Android Intent — đúng cú pháp RawBT công bố:
@@ -32774,7 +32783,7 @@ const PB_FIXED_DATA = [
     });
     L.push(rawbtDivider('='));
     L.push('');
-    return L.join('\n');
+    return rawbtRemoveDiacritics(L.join('\n'));
   }
 
   function pbhTryPrintKitchenTicket(t, lines) {
