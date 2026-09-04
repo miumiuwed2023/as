@@ -33936,6 +33936,7 @@ const PB_FIXED_DATA = [
       items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: subtotal
     });
     rawbtPrint(text, pbhPrintSettings.tamTinhCopies);
+    showToast('Đã gửi lệnh in tạm tính tới máy in.');
   }
 
   function pbhCheckout() {
@@ -34240,11 +34241,21 @@ const PB_FIXED_DATA = [
       items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: pmtNeedPayAmount()
     });
     rawbtPrint(text, pbhPrintSettings.tamTinhCopies);
+    showToast('Đã gửi lệnh in tạm tính tới máy in.');
   }
 
   function pmtConfirmPay() {
     const t = pbhFindTable(pmtTableId);
     if (!t || t.cart.length === 0) { showToast('Đơn hàng chưa có món để thanh toán.'); return; }
+    try {
+      pmtConfirmPayInner(t);
+    } catch (e) {
+      showToast('Lỗi khi thanh toán: ' + (e && e.message ? e.message : e));
+      console.error('[pmtConfirmPay]', e);
+    }
+  }
+
+  function pmtConfirmPayInner(t) {
     t.billStatus = 'paid';
     pbhRenderBoard();
     const paidAmount = pbhTableAmount(t);
