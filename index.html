@@ -32788,11 +32788,11 @@ const PB_FIXED_DATA = [
     const orderCode = t && t.orderCode ? t.orderCode : '';
     L.push(' '.repeat(Math.max(0, Math.floor((RAWBT_RECEIPT_WIDTH - 'CHẾ BIẾN'.length) / 2))) + rawbtBoldBig('CHẾ BIẾN'));
     L.push(rawbtDivider('='));
-    if (tableLabel) L.push(rawbtMed('Bàn: ' + tableLabel));
+    if (tableLabel) L.push(rawbtBold(rawbtMed('Bàn: ' + tableLabel)));
     L.push('Phục vụ: ' + server);
     L.push(rawbtBold((orderCode ? orderCode + ' - ' : '') + pbhReceiptDateStr()));
     L.push(rawbtDivider('-'));
-    L.push(rawbtPadLine('Món', 'SL'));
+    L.push(rawbtBold(rawbtPadLine('Món', 'SL')));
     L.push(rawbtDivider('-'));
     // Tên món in đậm + chữ to gấp đôi (ngang cỡ chữ "CHẾ BIẾN") để bar/bếp
     // dễ nhìn thấy ngay, nên bọc dòng ở bề rộng hẹp hơn (chữ to chiếm 2 lần
