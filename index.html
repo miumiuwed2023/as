@@ -32198,7 +32198,9 @@ const PB_FIXED_DATA = [
   function rawbtBuildReceipt(opts) {
     opts = opts || {};
     const L = [];
-    L.push(rawbtCenter('HOLA COFFEE'));
+    L.push(rawbtCenter(PBH_RECEIPT_STORE_NAME));
+    L.push(rawbtCenter(PBH_RECEIPT_STORE_ADDRESS));
+    L.push(rawbtCenter(PBH_RECEIPT_STORE_PHONE));
     L.push(rawbtCenter(opts.title || (opts.isTamTinh ? 'PHIẾU TẠM TÍNH' : 'HÓA ĐƠN BÁN HÀNG')));
     L.push(rawbtDivider('-'));
     const now = new Date();
@@ -32377,6 +32379,48 @@ const PB_FIXED_DATA = [
     };
     frame.onload = function () { setTimeout(doPrint, 150); };
     setTimeout(doPrint, 500); // dự phòng nếu sự kiện load không bắn ra
+  }
+
+  // ===== Modal "In hóa đơn": hiện bản xem trước sau khi thanh toán, cho phép
+  // In phiếu hoặc Bỏ qua thay vì tự động in ngầm luôn =====
+  let pbhReceiptPreviewOpts = null;
+
+  function pbhShowReceiptPreview(opts) {
+    pbhReceiptPreviewOpts = opts;
+    const frame = document.getElementById('pbhReceiptPreviewFrame');
+    const doc = frame.contentWindow.document;
+    doc.open();
+    doc.write(pbhBuildReceiptHtml(opts));
+    doc.close();
+    document.getElementById('pbhReceiptPreviewOverlay').classList.add('show');
+  }
+
+  function pbhCloseReceiptPreview() {
+    document.getElementById('pbhReceiptPreviewOverlay').classList.remove('show');
+    pbhReceiptPreviewOpts = null;
+  }
+
+  function pbhReceiptPreviewSkip() {
+    pbhCloseReceiptPreview();
+  }
+
+  function pbhReceiptPreviewDoPrint() {
+    const opts = pbhReceiptPreviewOpts || {};
+    const text = rawbtBuildReceipt({
+      title: opts.isTamTinh ? 'PHIẾU TẠM TÍNH' : 'HÓA ĐƠN BÁN HÀNG',
+      orderCode: opts.orderCode, tableLabel: opts.tableLabel, cashier: opts.cashier,
+      items: opts.items, subtotal: opts.subtotal, discount: opts.discount,
+      otherFee: opts.otherFee, total: opts.total
+    });
+    const copies = (pbhPrintSettings && pbhPrintSettings.invoiceCopies) || 1;
+    const ok = rawbtPrint(text, copies);
+    if (ok) showToast('Đang gửi lệnh in sang máy in.');
+    else {
+      // Không phải Android/không có RawBT: mở hộp thoại in của trình duyệt để dự phòng.
+      const frame = document.getElementById('pbhReceiptPreviewFrame');
+      try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) {}
+    }
+    pbhCloseReceiptPreview();
   }
 
   function rawbtTestPrint() {
@@ -34307,8 +34351,7 @@ const PB_FIXED_DATA = [
     t.billStatus = 'paid';
     pbhRenderBoard();
     const paidAmount = pbhTableAmount(t);
-    showToast('Thanh toán thành công ' + paidAmount.toLocaleString('vi-VN') + 'đ.' +
-      (pbhPrintSettings.autoPrint ? ' Đang tự động in ' + pbhPrintSettings.invoiceCopies + ' bản hóa đơn.' : ''));
+    showToast('Thanh toán thành công ' + paidAmount.toLocaleString('vi-VN') + 'đ.');
     // Ghi nhận doanh thu/số đơn thực tế vào "Bức tranh kinh doanh"
     dailyRevenue += paidAmount;
     dailyOrders += 1;
@@ -34346,16 +34389,15 @@ const PB_FIXED_DATA = [
     const receiptItems = rawbtItemsFromCart(t.cart, t.group);
     const receiptTableLabel = t.name + ' / ' + pbhGroupLabel(t.group);
     const receiptCashier = currentAccount ? currentAccount.name : 'Admin';
-    if (pbhPrintSettings.autoPrint) {
-      pbhOpenPrintReceiptWindow({
-        orderCode: t.orderCode, tableLabel: receiptTableLabel,
-        cashier: receiptCashier,
-        items: receiptItems, subtotal: receiptSubtotal, discount: receiptDiscount,
-        otherFee: pmtOtherFeeVal, total: receiptTotal, paid: receiptPaid, change: receiptChange
-      });
-    }
+    const receiptOpts = {
+      orderCode: t.orderCode, tableLabel: receiptTableLabel,
+      cashier: receiptCashier,
+      items: receiptItems, subtotal: receiptSubtotal, discount: receiptDiscount,
+      otherFee: pmtOtherFeeVal, total: receiptTotal, paid: receiptPaid, change: receiptChange
+    };
     const paidId = t.id;
     pmtClose();
+    pbhShowReceiptPreview(receiptOpts);
     setTimeout(function () {
       const tt = pbhFindTable(paidId);
       if (!tt || tt.billStatus !== 'paid') return;
@@ -35580,10 +35622,6 @@ const PB_FIXED_DATA = [
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="1"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
               In tạm tính
             </button>
-            <button class="mon-btn outline" onclick="pmtPrintBill()">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-              In bill
-            </button>
             <button class="mon-btn primary" onclick="pmtConfirmPay()">Thanh toán</button>
           </div>
         </div>
@@ -36028,6 +36066,24 @@ const PB_FIXED_DATA = [
   </div>
 
   <!-- Đặt ngoài mọi .app-screen để modal luôn hiển thị được dù đang ở màn hình nào -->
+  <div class="mon-modal-overlay" id="pbhReceiptPreviewOverlay" style="z-index:2100;" onclick="if (event.target === this) pbhReceiptPreviewSkip();">
+    <div class="mon-modal" style="width:460px;">
+      <div class="mon-modal-head">
+        <h3>In hóa đơn</h3>
+        <button class="mon-modal-close" onclick="pbhReceiptPreviewSkip()">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="mon-modal-body" style="padding:0;">
+        <iframe id="pbhReceiptPreviewFrame" style="width:100%; height:60vh; border:0; display:block;"></iframe>
+      </div>
+      <div class="mon-modal-foot" style="justify-content:flex-end;">
+        <button class="mon-btn outline" onclick="pbhReceiptPreviewSkip()">Bỏ qua</button>
+        <button class="mon-btn primary" onclick="pbhReceiptPreviewDoPrint()">In phiếu</button>
+      </div>
+    </div>
+  </div>
+
   <div class="mon-modal-overlay" id="bccnInvoiceDetailOverlay" style="z-index:2000;" onclick="if (event.target === this) closeBccnInvoiceDetail();">
     <div class="mon-modal" style="width:600px;">
       <div class="mon-modal-head">
