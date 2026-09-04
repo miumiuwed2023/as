@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>MIU - Thu ngân</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2600,16 +2603,19 @@
   }
   .pbh-qr-btn svg { width: 15px; height: 15px; }
 
-  .pbh-grid { display: -webkit-box; display: -webkit-flex; display: flex; -webkit-flex-wrap: wrap; flex-wrap: wrap; gap: 10px; overflow-y: auto; -webkit-box-flex: 1; -webkit-flex: 1 1 auto; flex: 1 1 auto; align-content: flex-start; padding-bottom: 8px; }
+  .pbh-grid { overflow-y: auto; flex: 1; padding-bottom: 8px; font-size: 0; }
   .pbh-card {
-    display: -webkit-box; display: -webkit-flex; display: flex; -webkit-box-orient: vertical; -webkit-box-direction: normal; -webkit-flex-direction: column; flex-direction: column; -webkit-box-align: center; -webkit-align-items: center; align-items: center; -webkit-box-pack: center; -webkit-justify-content: center; justify-content: center; gap: 4px;
-    -webkit-box-flex: 1; -webkit-flex: 1 1 86px; flex: 1 1 86px; max-width: 150px; min-width: 86px;
-    height: 70px; border: 1.5px solid #d7dde5; border-radius: 10px; cursor: pointer; position: relative;
-    background: #fff; padding: 5px; box-sizing: border-box;
+    display: inline-block; vertical-align: top; text-align: center;
+    width: 100px; height: 70px; margin: 0 10px 10px 0; border: 1.5px solid #d7dde5; border-radius: 10px; cursor: pointer; position: relative;
+    background: #fff; padding: 5px; box-sizing: border-box; font-size: 12.5px;
   }
+  .pbh-card > * { font-size: 12.5px; }
+  .pbh-card-name, .pbh-card-info { display: block; }
+  .pbh-card-mangve svg { display: block; margin: 0 auto; }
   .pbh-card:hover { border-color: #0d6efd; }
   .pbh-card-name { font-size: 12.5px; font-weight: 700; color: #292e35; }
-  .pbh-card-info { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #525d6a; }
+  .pbh-card-info { font-size: 11px; color: #525d6a; }
+  .pbh-card-info span { display: inline-block; margin-right: 6px; }
   .pbh-card.ordering { background: #cfe1ff; border-color: #6ea3f0; }
   .pbh-card.billed { background: #ffe0df; border-color: #ff7a7a; }
   .pbh-card.paid { background: #d7f5e3; border-color: #3fc57e; }
@@ -31930,10 +31936,12 @@ const PB_FIXED_DATA = [
     const pageItems = filtered.slice(start, start + PBH_PAGE_SIZE);
 
     const grid = document.getElementById('pbhGrid');
+    grid.style.cssText = 'overflow-y:auto;padding-bottom:8px;font-size:0;';
     grid.innerHTML = pageItems.map(function (t) {
+      const cardStyle = 'display:inline-block;vertical-align:top;width:100px;margin:0 10px 10px 0;box-sizing:border-box;';
       if (t.status === 'special') {
-        return '<div class="pbh-card pbh-card-mangve" onclick="pbhOpenOrder(\'' + t.id + '\')">' +
-          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2l1.5 5M18 2l-1.5 5M4 8h16l-1.5 12a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8L4 8z"/></svg>' +
+        return '<div class="pbh-card pbh-card-mangve" style="' + cardStyle + 'color:#0d6efd;" onclick="pbhOpenOrder(\'' + t.id + '\')">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="26" height="26"><path d="M6 2l1.5 5M18 2l-1.5 5M4 8h16l-1.5 12a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8L4 8z"/></svg>' +
           '<span class="pbh-card-name">' + t.name + '</span></div>';
       }
       const cls = ['pbh-card'];
@@ -31951,7 +31959,7 @@ const PB_FIXED_DATA = [
           '<div class="pbh-card-info">' + (t.seats ? '<span>👤' + t.seats + '</span>' : '') + (t.seats && t.staff ? '<span> · </span>' : '') + (t.staff ? '<span>🧑\u200d🍳' + t.staff + '</span>' : '') + '</div>'
         : '';
       const ctxAttr = t.status === 'used' ? (' oncontextmenu="pbhOpenCheckModal(event, \'' + t.id + '\')"') : '';
-      return '<div class="' + cls.join(' ') + '" onclick="pbhOpenOrder(\'' + t.id + '\')"' + ctxAttr + '>' + info + '<span class="pbh-card-name">' + t.name + '</span></div>';
+      return '<div class="' + cls.join(' ') + '" style="' + cardStyle + '" onclick="pbhOpenOrder(\'' + t.id + '\')"' + ctxAttr + '>' + info + '<span class="pbh-card-name">' + t.name + '</span></div>';
     }).join('');
 
     pbhRenderOrderTabs();
