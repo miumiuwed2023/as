@@ -34246,13 +34246,13 @@ const PB_FIXED_DATA = [
     t.billStatus = 'billed';
     pbhRenderBoard();
     const subtotal = pmtCurrentSubtotal();
-    const text = rawbtBuildReceipt({
+    const total = pmtNeedPayAmount();
+    pbhOpenPrintReceiptWindow({
       isTamTinh: true, orderCode: t.orderCode, tableLabel: t.name + ' / ' + pbhGroupLabel(t.group),
       cashier: currentAccount ? currentAccount.name : 'Admin',
-      items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: pmtNeedPayAmount()
+      items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: total, paid: total, change: 0
     });
-    rawbtPrint(text, pbhPrintSettings.tamTinhCopies);
-    showToast('Đã gửi lệnh in tạm tính tới máy in.');
+    showToast('Đang mở hộp thoại in tạm tính.');
   }
 
   function pmtPrintBill() {
@@ -34261,14 +34261,17 @@ const PB_FIXED_DATA = [
     const subtotal = pmtCurrentSubtotal();
     const discount = pmtDiscountAmount(subtotal) + pmtVoucherDiscountAmount(subtotal);
     const total = pmtNeedPayAmount();
-    const text = rawbtBuildReceipt({
+    const paidInputEl = document.getElementById('pmtPaidInput');
+    const paid = paidInputEl ? pmtParseAmount(paidInputEl.value) : total;
+    const changeEl = document.getElementById('pmtChange');
+    const change = changeEl ? pmtParseAmount(changeEl.textContent) : 0;
+    pbhOpenPrintReceiptWindow({
       orderCode: t.orderCode, tableLabel: t.name + ' / ' + pbhGroupLabel(t.group),
       cashier: currentAccount ? currentAccount.name : 'Admin',
       items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, discount: discount,
-      otherFee: pmtOtherFeeVal, total: total
+      otherFee: pmtOtherFeeVal, total: total, paid: paid, change: change
     });
-    rawbtPrint(text, pbhPrintSettings.invoiceCopies);
-    showToast('Đã gửi lệnh in bill tới máy in.');
+    showToast('Đang mở hộp thoại in bill.');
   }
 
   function pmtConfirmPay() {
@@ -34326,13 +34329,12 @@ const PB_FIXED_DATA = [
     const receiptTableLabel = t.name + ' / ' + pbhGroupLabel(t.group);
     const receiptCashier = currentAccount ? currentAccount.name : 'Admin';
     if (pbhPrintSettings.autoPrint) {
-      const text = rawbtBuildReceipt({
+      pbhOpenPrintReceiptWindow({
         orderCode: t.orderCode, tableLabel: receiptTableLabel,
         cashier: receiptCashier,
         items: receiptItems, subtotal: receiptSubtotal, discount: receiptDiscount,
-        otherFee: pmtOtherFeeVal, total: receiptTotal
+        otherFee: pmtOtherFeeVal, total: receiptTotal, paid: receiptPaid, change: receiptChange
       });
-      rawbtPrint(text, pbhPrintSettings.invoiceCopies);
     }
     const paidId = t.id;
     pmtClose();
