@@ -18411,11 +18411,12 @@
         if (!grouped[p.name]) grouped[p.name] = { name: p.name, qty: 0, price: p.price };
         grouped[p.name].qty++;
       });
-      pbhDirectPrintReceipt({
+      const text = rawbtBuildReceipt({
         cashier: currentAccount ? currentAccount.name : 'Admin',
         items: Object.keys(grouped).map(function (k) { return grouped[k]; }),
         subtotal: total, total: total
       });
+      rawbtPrint(text, pbhPrintSettings.invoiceCopies);
     }
     dailyRevenue += total;
     dailyOrders += 1;
@@ -32257,7 +32258,7 @@ const PB_FIXED_DATA = [
     L.push('');
     L.push(rawbtCenter('Cảm ơn quý khách!'));
     L.push('');
-    return L.join('\n'); // Đang IN CÓ DẤU — nếu máy in ra lỗi/mất chữ, đổi lại thành: return rawbtRemoveDiacritics(L.join('\n'));
+    return rawbtRemoveDiacritics(L.join('\n'));
   }
 
   // Gửi 1 bản in sang RawBT qua Android Intent — đúng cú pháp RawBT công bố:
@@ -32441,21 +32442,10 @@ const PB_FIXED_DATA = [
     pbhCloseReceiptPreview();
   }
 
-  // In hóa đơn/tạm tính bằng CÁCH IN HÌNH ẢNH (mở hộp thoại in trình duyệt,
-  // người dùng chọn "RawBT" làm máy in trong danh sách). Cách này KHÔNG
-  // phụ thuộc bảng mã của máy in — trình duyệt vẽ đúng chữ có dấu thành hình
-  // ảnh, RawBT chỉ việc in lại y hệt, nên không còn tình trạng "chữ được chữ
-  // mất" như khi gửi văn bản thô (ESC/POS) trực tiếp.
-  // Nếu vẫn muốn dùng cách cũ (gửi thẳng văn bản, nhanh hơn nhưng phụ thuộc
-  // bảng mã máy in), đổi USE_IMAGE_PRINT bên dưới thành false.
-  const PBH_USE_IMAGE_PRINT = true;
-
+  // In thẳng qua RawBT (không hỏi lại), dùng chung cho Tạm tính và cho nút
+  // "In phiếu" trong modal xem trước sau khi thanh toán.
   function pbhDirectPrintReceipt(opts) {
     opts = opts || {};
-    if (PBH_USE_IMAGE_PRINT) {
-      pbhOpenPrintReceiptWindow(opts);
-      return;
-    }
     const text = rawbtBuildReceipt({
       title: opts.isTamTinh ? 'PHIẾU TẠM TÍNH' : 'HÓA ĐƠN BÁN HÀNG',
       orderCode: opts.orderCode, tableLabel: opts.tableLabel, cashier: opts.cashier,
@@ -32463,12 +32453,13 @@ const PB_FIXED_DATA = [
       otherFee: opts.otherFee, total: opts.total
     });
     const copies = (pbhPrintSettings && pbhPrintSettings.invoiceCopies) || 1;
-    const ok = rawbtPrint(text, copies);
-    if (ok) showToast('Đang gửi lệnh in sang máy in.');
-    else {
-      // Không phải Android/không có RawBT: mở hộp thoại in của trình duyệt để dự phòng.
-      pbhOpenPrintReceiptWindow(opts);
+    // Luôn trỏ thẳng sang RawBT (không kiểm tra Android/không dự phòng bằng
+    // hộp thoại in trình duyệt nữa) — bấm là in luôn, giống nút "Thông báo".
+    const n = Math.max(1, copies || 1);
+    for (let i = 0; i < n; i++) {
+      setTimeout(function () { rawbtSend(text); }, i * 900);
     }
+    showToast('Đang gửi lệnh in sang máy in.');
   }
 
   function pbhReceiptPreviewDoPrint() {
@@ -32805,27 +32796,28 @@ const PB_FIXED_DATA = [
     const tableLabel = t && t.name ? (t.name + (t.group ? ' - ' + pbhGroupLabel(t.group) : '')) : '';
     const server = (currentAccount && currentAccount.name ? currentAccount.name : 'Thu ngân').toUpperCase();
     const orderCode = t && t.orderCode ? t.orderCode : '';
-    L.push(' '.repeat(Math.max(0, Math.floor((RAWBT_RECEIPT_WIDTH - 'CHẾ BIẾN'.length) / 2))) + rawbtBoldBig('CHẾ BIẾN'));
+    L.push(rawbtCenter('CHE BIEN'));
     L.push(rawbtDivider('='));
-    if (tableLabel) L.push(rawbtMed('Bàn: ' + tableLabel));
-    L.push('Phục vụ: ' + server);
-    L.push(rawbtBold((orderCode ? orderCode + ' - ' : '') + pbhReceiptDateStr()));
+    if (tableLabel) L.push('Ban: ' + tableLabel);
+    L.push('Phuc vu: ' + server);
+    L.push((orderCode ? orderCode + ' - ' : '') + pbhReceiptDateStr());
     L.push(rawbtDivider('-'));
-    L.push(rawbtPadLine('Món', 'SL'));
+    L.push(rawbtPadLine('Mon', 'SL'));
     L.push(rawbtDivider('-'));
-    // Tên món in đậm + chữ to gấp đôi (ngang cỡ chữ "CHẾ BIẾN") để bar/bếp
-    // dễ nhìn thấy ngay, nên bọc dòng ở bề rộng hẹp hơn (chữ to chiếm 2 lần
-    // chỗ so với chữ thường) để không bị tràn/cắt trên giấy in nhiệt 58mm.
+    // Không chèn mã điều khiển đậm/to nữa (nhiều máy in/RawBT không hiểu,
+    // in ra ký tự rác thay vì làm đậm) — chỉ in chữ thường, viết HOA tên
+    // món để vẫn dễ nhìn mà không lo lỗi font.
     (lines || []).forEach(function (l) {
       const sign = l.sign === '-' ? '- ' : '';
-      rawbtWrap(sign + l.name, Math.floor((RAWBT_RECEIPT_WIDTH - 4) / 2)).forEach(function (line) {
-        L.push(rawbtBoldBig(line));
+      rawbtWrap((sign + l.name).toUpperCase(), RAWBT_RECEIPT_WIDTH).forEach(function (line) {
+        L.push(line);
       });
-      L.push(rawbtBoldBig('SL: ' + l.qty));
+      L.push('SL: ' + l.qty);
+      L.push(rawbtDivider('-'));
     });
     L.push(rawbtDivider('='));
     L.push('');
-    return L.join('\n'); // Đang IN CÓ DẤU — nếu máy in ra lỗi/mất chữ, đổi lại thành: return rawbtRemoveDiacritics(L.join('\n'));
+    return rawbtRemoveDiacritics(L.join('\n'));
   }
 
   function pbhTryPrintKitchenTicket(t, lines) {
@@ -34064,11 +34056,12 @@ const PB_FIXED_DATA = [
     t.billStatus = 'billed';
     pbhRenderBoard();
     const subtotal = pbhTableAmount(t);
-    pbhDirectPrintReceipt({
+    const text = rawbtBuildReceipt({
       isTamTinh: true, orderCode: t.orderCode, tableLabel: t.name + ' / ' + pbhGroupLabel(t.group),
       cashier: currentAccount ? currentAccount.name : 'Admin',
       items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, total: subtotal
     });
+    rawbtPrint(text, pbhPrintSettings.tamTinhCopies);
     showToast('Đã gửi lệnh in tạm tính tới máy in.');
   }
 
