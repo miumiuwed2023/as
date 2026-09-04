@@ -2940,8 +2940,8 @@
   .pmt-quick-amounts button.active { border-color: #0070f4; background: #e6f1fe; color: #0070f4; }
   .pmt-change-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 22px; font-size: 13.5px; color: #3e464f; flex-shrink: 0; }
   .pmt-change-row .val { font-size: 15px; font-weight: 700; color: #15171a; }
-  .pmt-right-foot { display: flex; gap: 10px; padding: 14px 22px; border-top: 1px solid #e8eaed; flex-shrink: 0; }
-  .pmt-right-foot .mon-btn { flex: 1; justify-content: center; }
+  .pmt-right-foot { display: table; width: 100%; table-layout: fixed; border-spacing: 8px 0; padding: 14px 22px; border-top: 1px solid #e8eaed; flex-shrink: 0; }
+  .pmt-right-foot .mon-btn { display: table-cell; text-align: center; vertical-align: middle; }
   .pmt-partial-banner { align-items: center; justify-content: space-between; background: #e6f1fe; color: #0055b8; font-size: 13px; padding: 10px 22px; gap: 12px; flex-shrink: 0; }
   .pmt-partial-banner .lbl { display: flex; align-items: center; gap: 6px; }
   .pmt-partial-banner a { color: #0070f4; font-weight: 600; text-decoration: underline; cursor: pointer; flex-shrink: 0; }
@@ -34255,6 +34255,22 @@ const PB_FIXED_DATA = [
     showToast('Đã gửi lệnh in tạm tính tới máy in.');
   }
 
+  function pmtPrintBill() {
+    const t = pbhFindTable(pmtTableId);
+    if (!t || t.cart.length === 0) { showToast('Đơn hàng chưa có món để in bill.'); return; }
+    const subtotal = pmtCurrentSubtotal();
+    const discount = pmtDiscountAmount(subtotal) + pmtVoucherDiscountAmount(subtotal);
+    const total = pmtNeedPayAmount();
+    const text = rawbtBuildReceipt({
+      orderCode: t.orderCode, tableLabel: t.name + ' / ' + pbhGroupLabel(t.group),
+      cashier: currentAccount ? currentAccount.name : 'Admin',
+      items: rawbtItemsFromCart(t.cart, t.group), subtotal: subtotal, discount: discount,
+      otherFee: pmtOtherFeeVal, total: total
+    });
+    rawbtPrint(text, pbhPrintSettings.invoiceCopies);
+    showToast('Đã gửi lệnh in bill tới máy in.');
+  }
+
   function pmtConfirmPay() {
     const t = pbhFindTable(pmtTableId);
     if (!t || t.cart.length === 0) { showToast('Đơn hàng chưa có món để thanh toán.'); return; }
@@ -35539,6 +35555,10 @@ const PB_FIXED_DATA = [
             <button class="mon-btn outline" onclick="pmtPrintTamTinh()">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="1"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
               In tạm tính
+            </button>
+            <button class="mon-btn outline" onclick="pmtPrintBill()">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              In bill
             </button>
             <button class="mon-btn primary" onclick="pmtConfirmPay()">Thanh toán</button>
           </div>
