@@ -32796,13 +32796,13 @@ const PB_FIXED_DATA = [
     const tableLabel = t && t.name ? (t.name + (t.group ? ' - ' + pbhGroupLabel(t.group) : '')) : '';
     const server = (currentAccount && currentAccount.name ? currentAccount.name : 'Thu ngân').toUpperCase();
     const orderCode = t && t.orderCode ? t.orderCode : '';
-    L.push(rawbtCenter('CHE BIEN'));
+    L.push(rawbtCenter('CHẾ BIẾN'));
     L.push(rawbtDivider('='));
-    if (tableLabel) L.push('Ban: ' + tableLabel);
-    L.push('Phuc vu: ' + server);
+    if (tableLabel) L.push('Bàn: ' + tableLabel);
+    L.push('Phục vụ: ' + server);
     L.push((orderCode ? orderCode + ' - ' : '') + pbhReceiptDateStr());
     L.push(rawbtDivider('-'));
-    L.push(rawbtPadLine('Mon', 'SL'));
+    L.push(rawbtPadLine('Món', 'SL'));
     L.push(rawbtDivider('-'));
     // Không chèn mã điều khiển đậm/to nữa (nhiều máy in/RawBT không hiểu,
     // in ra ký tự rác thay vì làm đậm) — chỉ in chữ thường, viết HOA tên
@@ -32817,7 +32817,7 @@ const PB_FIXED_DATA = [
     });
     L.push(rawbtDivider('='));
     L.push('');
-    return rawbtRemoveDiacritics(L.join('\n'));
+    return L.join('\n');
   }
 
   function pbhTryPrintKitchenTicket(t, lines) {
